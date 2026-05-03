@@ -1,0 +1,1543 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Exam Schedule Result</title>
+    <link rel="icon" type="image/png" href="/static/logo.png" />
+    <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-body: #f4f7fb;
+        --bg-card: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --primary: #4f46e5;
+        --primary-gradient: linear-gradient(135deg, #4f46e5, #8b5cf6);
+        --shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        --chart-bg: #f8fafc;
+        --pill-bg: #f1f5f9;
+        --table-header: #f8fafc;
+      }
+
+      [data-theme="dark"] {
+        --bg-body: #0f172a;
+        --bg-card: #1e293b;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+        --primary: #6366f1;
+        --primary-gradient: linear-gradient(135deg, #4f46e5, #7c3aed);
+        --shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        --chart-bg: #0f172a;
+        --pill-bg: #334155;
+        --table-header: #0f172a;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease,
+          border-color 0.3s ease;
+      }
+      body {
+        font-family: "Outfit", sans-serif;
+        background: var(--bg-body);
+        color: var(--text-main);
+        direction: ltr;
+      }
+      .hdr {
+        background: var(--primary-gradient);
+        color: #fff;
+        padding: 26px 36px 20px;
+        text-align: center;
+        position: relative;
+      }
+      .hdr h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 5px;
+        color: #fff;
+      }
+      .hdr p {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-bottom: 14px;
+        color: #fff;
+      }
+
+      .theme-toggle {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 20px;
+        transition: all 0.2s;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      }
+      .theme-toggle:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
+      }
+
+      .pills {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 20px;
+        padding: 5px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        backdrop-filter: blur(4px);
+      }
+      .wrap {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 22px 24px;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .grid3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+      }
+      .ch {
+        padding: 16px 22px;
+        font-size: 16px;
+        font-weight: 600;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        justify-content: space-between;
+      }
+      #net {
+        width: 100%;
+        height: 680px;
+        background: transparent;
+      }
+      .lgnd { display: none; }
+      .tbl {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      .tbl th {
+        background: var(--table-header);
+        padding: 14px 18px;
+        font-weight: 600;
+        color: var(--text-muted);
+        border-bottom: 2px solid var(--border-color);
+        text-align: left;
+      }
+      .tbl td {
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+        text-align: left;
+      }
+      .tbl tr:last-child td {
+        border: none;
+      }
+      .tbody-wrap {
+        overflow-y: auto;
+        max-height: 490px;
+      }
+      .dl-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--primary-gradient);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        margin: 16px 18px 12px;
+        font-family: inherit;
+        text-decoration: none;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+      }
+      .dl-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+      }
+      .ok-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: #22c55e;
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        margin: 0 18px 12px;
+      }
+      .sec-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 10px 0 18px;
+        color: var(--text-main);
+      }
+      .back-btn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 13px;
+        background: rgba(255, 255, 255, 0.1);
+        font-weight: 600;
+        transition: all 0.2s;
+        backdrop-filter: blur(4px);
+      }
+      .back-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+      }
+
+      @media (max-width: 860px) {
+        .grid2,
+        .grid3 { grid-template-columns: 1fr; }
+      }
+
+      /* ── Toolbar inside schedule card ── */
+      /* ── Options Selector Bar ── */
+      .options-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 18px;
+        background: var(--chart-bg);
+        border-bottom: 1px solid var(--border-color);
+        flex-wrap: wrap;
+      }
+      .options-bar label {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+      .options-select {
+        padding: 7px 32px 7px 12px;
+        border-radius: 9px;
+        border: 1.5px solid var(--border-color);
+        background: var(--bg-card);
+        color: var(--text-main);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        outline: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        transition: border-color .2s, box-shadow .2s;
+        min-width: 200px;
+      }
+      .options-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+      }
+      .score-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-left: auto;
+      }
+      .score-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        white-space: nowrap;
+      }
+      .score-badge.balance { background: rgba(99,102,241,.12); color: var(--primary); }
+      .score-badge.comfort  { background: rgba(5,150,105,.12);  color: #059669; }
+      .score-badge.load     { background: rgba(217,119,6,.12);  color: #d97706; }
+      .score-badge.best     { background: linear-gradient(135deg,#f59e0b,#f97316); color:#fff; }
+
+      .card-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--chart-bg);
+        flex-wrap: wrap;
+      }
+      .tb-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.18s;
+      }
+      .tb-btn-pdf  { background: #ef4444; color: #fff; box-shadow: 0 3px 8px rgba(239,68,68,.25); }
+      .tb-btn-pdf:hover  { background: #dc2626; transform: translateY(-1px); box-shadow: 0 5px 12px rgba(239,68,68,.35); }
+      .tb-btn-csv  { background: var(--primary-gradient); color: #fff; box-shadow: 0 3px 8px rgba(79,70,229,.2); }
+      .tb-btn-csv:hover  { opacity: .9; transform: translateY(-1px); }
+      .tb-search {
+        margin-left: auto;
+        position: relative;
+        min-width: 220px;
+      }
+      .tb-search input {
+        width: 100%;
+        padding: 8px 14px 8px 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-card);
+        color: var(--text-main);
+        font-family: inherit;
+        font-size: 13px;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+      }
+      .tb-search input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+      }
+      .tb-search .si {
+        position: absolute;
+        left: 11px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 15px;
+        pointer-events: none;
+      }
+      .search-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 6px 18px;
+        background: var(--chart-bg);
+        border-bottom: 1px solid var(--border-color);
+        display: none;
+      }
+      .search-hint.visible { display: block; }
+
+      /* ── Autocomplete Dropdown ── */
+      .autocomplete-wrap { position: relative; flex: 1; min-width: 220px; }
+      .ac-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0; right: 0;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.12);
+        z-index: 999;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+      }
+      .ac-dropdown.open { display: block; }
+      .ac-item {
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 13px;
+        border-bottom: 1px solid var(--border-color);
+        transition: background .12s;
+      }
+      .ac-item:last-child { border-bottom: none; }
+      .ac-item:hover, .ac-item.active { background: rgba(99,102,241,.08); color: var(--primary); font-weight: 600; }
+      .ac-highlight { color: var(--primary); font-weight: 700; }
+
+      /* ── Student View Panel ── */
+      .student-panel {
+        display: none;
+        border-top: 2px solid var(--primary);
+        background: var(--chart-bg);
+        padding: 14px 18px;
+      }
+      .student-panel.visible { display: block; }
+      .sp-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+      .sp-name { font-weight: 700; font-size: 15px; color: var(--primary); }
+      .sp-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--text-muted);
+        padding: 0 4px;
+        line-height: 1;
+      }
+      .sp-close:hover { color: #ef4444; }
+      .sp-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 13px;
+      }
+      .sp-row:last-child { border-bottom: none; }
+      .sp-date {
+        min-width: 95px;
+        font-weight: 700;
+        color: #fff;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        text-align: center;
+      }
+      .sp-print-btn {
+        margin-top: 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #ef4444;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all .18s;
+      }
+      .sp-print-btn:hover { background: #dc2626; transform: translateY(-1px); }
+
+      /* ── Drag & Drop pills ── */
+      .course-pill {
+        display: inline-flex;
+        align-items: center;
+        cursor: grab;
+        user-select: none;
+        transition: transform .12s, box-shadow .12s;
+      }
+      .course-pill:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,.12); }
+      .course-pill:active { cursor: grabbing; }
+      .sortable-ghost { opacity: .25; transform: scale(.92); }
+      .sortable-chosen { box-shadow: 0 8px 20px rgba(0,0,0,.18) !important; transform: scale(1.04); }
+      .drop-zone.drag-over {
+        background: rgba(99,102,241,.08);
+        outline: 2px dashed var(--primary);
+        outline-offset: -2px;
+        border-radius: 8px;
+      }
+
+      /* ── Conflict Modal ── */
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.45);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-backdrop.open { display: flex; }
+      .conflict-modal {
+        background: var(--bg-card);
+        border-radius: 18px;
+        box-shadow: 0 24px 60px rgba(0,0,0,.35);
+        width: min(520px, 95vw);
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: modalIn .25s cubic-bezier(.22,1,.36,1);
+      }
+      @keyframes modalIn {
+        from { transform: scale(.94) translateY(10px); opacity: 0; }
+        to   { transform: scale(1)   translateY(0);    opacity: 1; }
+      }
+      .modal-head {
+        background: linear-gradient(135deg,#ef4444,#dc2626);
+        color: #fff;
+        padding: 20px 24px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+      }
+      .modal-head-icon { font-size: 28px; flex-shrink:0; }
+      .modal-head-text h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+      .modal-head-text p  { font-size: 13px; opacity: .88; line-height: 1.4; }
+      .modal-body {
+        padding: 18px 24px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .modal-body p.label {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+      .conflict-student-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        background: rgba(239,68,68,.06);
+        border: 1px solid rgba(239,68,68,.15);
+      }
+      .conflict-student-row .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg,#ef4444,#f97316);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .conflict-student-row .info { flex: 1; min-width: 0; }
+      .conflict-student-row .s-name { font-size: 13px; font-weight: 700; color: var(--text-main); }
+      .conflict-student-row .s-clash {
+        font-size: 12px;
+        color: #ef4444;
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .modal-foot {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        padding: 14px 24px;
+        border-top: 1px solid var(--border-color);
+        background: var(--chart-bg);
+      }
+      .modal-btn {
+        padding: 10px 22px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+        transition: all .18s;
+      }
+      .modal-btn-cancel  { background: var(--pill-bg); color: var(--text-main); }
+      .modal-btn-cancel:hover  { background: var(--border-color); }
+      .modal-btn-proceed { background: #ef4444; color: #fff; box-shadow: 0 4px 12px rgba(239,68,68,.3); }
+      .modal-btn-proceed:hover { background: #dc2626; transform: translateY(-1px); }
+
+      /* ── Toast notification ── */
+      .toast {
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        min-width: 280px;
+        max-width: 400px;
+        padding: 14px 18px;
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(0,0,0,.18);
+        z-index: 9999;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.4;
+        animation: toastIn .3s cubic-bezier(.22,1,.36,1);
+      }
+      .toast-icon { font-size: 20px; flex-shrink: 0; }
+      @keyframes toastIn {
+        from { transform: translateX(110%); opacity: 0; }
+        to   { transform: translateX(0);   opacity: 1; }
+      }
+      .toast-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+      .toast-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    </style>
+  </head>
+  <body>
+    <div class="hdr">
+      <a href="/" class="back-btn">← Back to Setup</a>
+      <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">
+        🌙
+      </button>
+      <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <img src="/static/logo.png" alt="Logo" style="height: 40px;" />
+        Exam Scheduling Result
+      </h1>
+      <p>Greedy Graph Coloring Algorithm — Smart Timetable</p>
+      <div class="pills" id="statsPills">
+        <!-- Generated dynamically -->
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="grid2">
+        <div class="card">
+          <div class="ch">
+            <span
+              >🕸️ Conflict Graph
+              <span
+                style="
+                  font-size: 12px;
+                  font-weight: 400;
+                  color: var(--text-muted);
+                  margin-left: 6px;
+                "
+              ></a></span>
+          </div>
+          <div id="net" style="border-radius:0 0 16px 16px;"></div>
+        </div>
+        <div class="card">
+          <div class="ch">📅 Exam Schedule</div>
+          <div id="verifyBadge" class="ok-badge"></div>
+
+          <!-- Options Selector -->
+          <div class="options-bar" id="optionsBar">
+            <label>🗓️ Schedule Option</label>
+            <select class="options-select" id="optionsSelect" onchange="switchOption(this.value)">
+              <!-- populated by JS -->
+            </select>
+            <div class="score-badges" id="optionScoreBadges"></div>
+          </div>
+
+          <!-- Professional Toolbar -->
+          <div class="card-toolbar">
+            <button class="tb-btn tb-btn-pdf" onclick="dlPDF()" title="Print full schedule">
+              📄 Print PDF
+            </button>
+            <button class="tb-btn tb-btn-csv" onclick="dlCSV()" title="Download CSV">
+              📊 Export CSV
+            </button>
+            <div class="tb-search autocomplete-wrap">
+              <span class="si">🔍</span>
+              <input type="text" id="studentSearch"
+                placeholder="Search student name…"
+                oninput="handleSearch(this.value)"
+                onkeydown="handleSearchKey(event)"
+                autocomplete="off">
+              <div class="ac-dropdown" id="acDropdown"></div>
+            </div>
+          </div>
+          <div class="search-hint" id="searchHint"></div>
+
+          <!-- Student Schedule Panel (hidden until student selected) -->
+          <div class="student-panel" id="studentPanel">
+            <div class="sp-header">
+              <span class="sp-name" id="spName"></span>
+              <button class="sp-close" onclick="clearStudent()" title="Close">✕</button>
+            </div>
+            <div id="spRows"></div>
+            <button class="sp-print-btn" onclick="printStudentPDF()">📄 Print Student Schedule</button>
+          </div>
+
+          <div class="tbody-wrap">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th style="width: 120px">Date</th>
+                  <th>Courses</th>
+                  <th style="width: 55px">#</th>
+                </tr>
+              </thead>
+              <tbody id="scheduleTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-title">📊 Analytics &amp; Insights</div>
+      <div class="grid2" style="margin-bottom: 20px">
+        <div class="card">
+          <div style="padding: 16px"><div id="ch1"></div></div>
+        </div>
+        <div class="card">
+          <div style="padding: 16px"><div id="ch2"></div></div>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="card">
+          <div style="padding: 16px"><div id="ch3"></div></div>
+        </div>
+        <div class="card">
+          <div style="padding: 16px"><div id="ch5"></div></div>
+        </div>
+        <div class="card">
+          <div style="padding: 16px">
+            <h3
+              style="
+                font-size: 16px;
+                margin-bottom: 15px;
+                text-align: center;
+                color: var(--text-main);
+              "
+            >
+              Holidays & Excluded Dates
+            </h3>
+            <ul
+              id="holidaysList"
+              style="
+                list-style: none;
+                padding: 0;
+                font-size: 14px;
+                max-height: 260px;
+                overflow-y: auto;
+              "
+            ></ul>
+          </div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-bottom: 20px">
+        <div class="card">
+          <div style="padding: 16px"><div id="ch6"></div></div>
+        </div>
+        <div class="card">
+          <div style="padding: 16px"><div id="ch7"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conflict Modal -->
+    <div class="modal-backdrop" id="conflictModal">
+      <div class="conflict-modal">
+        <div class="modal-head">
+          <span class="modal-head-icon">⚠️</span>
+          <div class="modal-head-text">
+            <h3 id="modalTitle">Conflict Detected!</h3>
+            <p id="modalSubtitle"></p>
+          </div>
+        </div>
+        <div class="modal-body">
+          <p class="label" id="modalCount"></p>
+          <div id="modalStudentList"></div>
+        </div>
+        <div class="modal-foot">
+          <button class="modal-btn modal-btn-cancel" onclick="closeConflictModal(false)">❌ Cancel Move</button>
+          <button class="modal-btn modal-btn-proceed" onclick="closeConflictModal(true)">⚠️ Proceed Anyway</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const dataStr = localStorage.getItem("scheduleResult");
+      if (!dataStr) {
+        alert("No schedule data found! Redirecting to setup...");
+        window.location.href = "/";
+      }
+
+      const res = JSON.parse(dataStr);
+      const PALETTE = res.palette;
+
+      // Debug — open browser console (F12) to verify
+      console.log("[Schedule] students loaded:", Object.keys(res.students || {}).length, "students");
+      console.log("[Schedule] Sample:", Object.entries(res.students || {}).slice(0,2));
+
+      // Theme Toggle Logic
+      function toggleTheme() {
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        html.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+        document.getElementById("themeToggle").innerHTML =
+          newTheme === "dark" ? "☀️" : "🌙";
+        renderCharts();
+        renderTableAndLegend();
+      }
+
+      // Load saved theme
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme) {
+        document.documentElement.setAttribute("data-theme", savedTheme);
+        document.getElementById("themeToggle").innerHTML =
+          savedTheme === "dark" ? "☀️" : "🌙";
+      }
+
+      // Populate Stats Pills
+      const s = res.stats;
+      document.getElementById("statsPills").innerHTML = `
+    <div class="pill">📚 ${s.courses} Courses</div>
+    <div class="pill">👥 ${s.students} Students</div>
+    <div class="pill">🔗 ${s.edges} Conflict Edges</div>
+    <div class="pill">📅 ${s.exam_days} Exam Days</div>
+    <div class="pill">✅ 0 Conflicts</div>
+    <div class="pill">Graph Density: ${s.density}</div>
+`;
+
+      // Verify Badge
+      const v = res.verification;
+      const vBadge = document.getElementById("verifyBadge");
+      vBadge.innerHTML = v.ok ? `✅ ${v.message}` : `❌ ${v.message}`;
+      if (!v.ok) {
+        vBadge.style.background = "rgba(239,68,68,0.1)";
+        vBadge.style.color = "#ef4444";
+        vBadge.style.borderColor = "rgba(239,68,68,0.3)";
+      }
+
+      // ─── State ───────────────────────────────────────────────────────────────
+      let csvData = "Date,Courses,Count\n";
+      let courseColors = {};
+      let selectedStudent = null;
+      let acActiveIdx = -1;
+      let sortableInstances = [];
+
+      // ─── Options Selector ─────────────────────────────────────────────────────
+      function initOptions() {
+        const opts = res.options || [];
+        if (!opts.length) {
+          document.getElementById("optionsBar").style.display = "none";
+          return;
+        }
+
+        const sel = document.getElementById("optionsSelect");
+        sel.innerHTML = opts.map((opt, i) => {
+          const best  = opt.is_best ? " ⭐ Best Choice" : "";
+          const score = opt.score.combined.toFixed(1);
+          return `<option value="${i}">📅 ${opt.n_days} Days — Score: ${score}${best}</option>`;
+        }).join("");
+
+        // Pre-select best
+        const bestIdx = opts.findIndex(o => o.is_best);
+        if (bestIdx >= 0) sel.value = bestIdx;
+
+        updateScoreBadges(opts[bestIdx >= 0 ? bestIdx : 0]);
+      }
+
+      function switchOption(idxStr) {
+        const opts = res.options || [];
+        const idx  = parseInt(idxStr);
+        if (isNaN(idx) || !opts[idx]) return;
+
+        const opt = opts[idx];
+        // Update active dated_slots
+        res.dated_slots = opt.dated_slots;
+
+        updateScoreBadges(opt);
+        clearStudent();
+        renderTableAndLegend();
+        renderCharts();
+
+        // Update stats pill
+        const pill = document.querySelector("#statsPills .pill:nth-child(4)");
+        if (pill) pill.textContent = `📅 ${opt.n_days} Exam Days`;
+      }
+
+      function updateScoreBadges(opt) {
+        if (!opt) return;
+        const s = opt.score;
+        const best = opt.is_best ? `<span class="score-badge best">⭐ Best Choice</span>` : "";
+        document.getElementById("optionScoreBadges").innerHTML = `
+          ${best}
+          <span class="score-badge balance">⚖️ Balance: ${s.balance}%</span>
+          <span class="score-badge comfort">😌 Comfort: ${s.comfort}%</span>
+          <span class="score-badge load">📚 Max/Day: ${s.max_load}</span>
+        `;
+      }
+
+      // ─── Autocomplete Search ──────────────────────────────────────────────────
+      function handleSearch(val) {
+        const q = val.toLowerCase().trim();
+        const dd = document.getElementById("acDropdown");
+        acActiveIdx = -1;
+
+        if (!q) { dd.classList.remove("open"); dd.innerHTML = ""; return; }
+
+        const students = res.students || {};
+        const matches = Object.keys(students).filter(n => n.toLowerCase().includes(q)).slice(0, 12);
+
+        if (!matches.length) { dd.classList.remove("open"); dd.innerHTML = ""; return; }
+
+        dd.innerHTML = matches.map((name, idx) => {
+          const hi = name.replace(new RegExp(`(${q})`, "gi"), `<span class="ac-highlight">$1</span>`);
+          return `<div class="ac-item" data-idx="${idx}" data-name="${name}" onmousedown="selectStudent('${name.replace(/'/g,"\\'")}')"> ${hi} </div>`;
+        }).join("");
+        dd.classList.add("open");
+      }
+
+      function handleSearchKey(e) {
+        const dd = document.getElementById("acDropdown");
+        const items = dd.querySelectorAll(".ac-item");
+        if (!items.length) return;
+        if (e.key === "ArrowDown") { acActiveIdx = Math.min(acActiveIdx + 1, items.length - 1); }
+        else if (e.key === "ArrowUp") { acActiveIdx = Math.max(acActiveIdx - 1, 0); }
+        else if (e.key === "Enter" && acActiveIdx >= 0) {
+          e.preventDefault();
+          selectStudent(items[acActiveIdx].dataset.name);
+          return;
+        } else if (e.key === "Escape") { dd.classList.remove("open"); return; }
+        items.forEach((el, i) => el.classList.toggle("active", i === acActiveIdx));
+      }
+
+      document.addEventListener("click", e => {
+        if (!e.target.closest(".autocomplete-wrap"))
+          document.getElementById("acDropdown").classList.remove("open");
+      });
+
+      function selectStudent(name) {
+        selectedStudent = name;
+        document.getElementById("studentSearch").value = name;
+        document.getElementById("acDropdown").classList.remove("open");
+        showStudentPanel(name);
+      }
+
+      function clearStudent() {
+        selectedStudent = null;
+        document.getElementById("studentSearch").value = "";
+        document.getElementById("studentPanel").classList.remove("visible");
+        document.getElementById("searchHint").classList.remove("visible");
+      }
+
+      function showStudentPanel(name) {
+        const courses = (res.students || {})[name];
+        if (!courses) return;
+        document.getElementById("spName").textContent = "👤 " + name;
+        let rows = "";
+        let i = 0;
+        for (const [date, dayCourses] of Object.entries(res.dated_slots)) {
+          const myExams = dayCourses.filter(c => courses.includes(c));
+          if (!myExams.length) { i++; continue; }
+          const col = PALETTE[i % PALETTE.length];
+          rows += `<div class="sp-row">
+            <span class="sp-date" style="background:${col}">${date}</span>
+            <span>${myExams.join(" &nbsp;|&nbsp; ")}</span>
+          </div>`;
+          i++;
+        }
+        document.getElementById("spRows").innerHTML = rows || "<p style='color:var(--text-muted)'>No exams scheduled.</p>";
+        document.getElementById("studentPanel").classList.add("visible");
+        const hint = document.getElementById("searchHint");
+        hint.textContent = `Schedule for: ${name} — ${courses.length} courses registered.`;
+        hint.classList.add("visible");
+      }
+
+      // ─── Table Renderer ───────────────────────────────────────────────────────
+      function renderTableAndLegend() {
+        const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+        let srows = "";
+        let i = 0;
+        csvData = "Date,Courses,Count\n";
+
+        for (const [date, courses] of Object.entries(res.dated_slots)) {
+          const col = PALETTE[i % PALETTE.length];
+          courses.forEach(c => (courseColors[c] = col));
+          const pillTextColor = isDark ? "#f8fafc" : col;
+          const pillBg  = isDark ? `${col}40` : `${col}15`;
+          const pillBorder = isDark ? `${col}60` : `${col}40`;
+
+          const pills = courses.map(c => {
+            const isPinned = res.pinned_courses.some(pc => pc.course === c && pc.date === date);
+            const border   = isPinned ? `2px solid ${col}` : `1px solid ${pillBorder}`;
+            return `<span class="course-pill"
+              data-course="${c}" data-from-date="${date}"
+              style="background:${pillBg};color:${pillTextColor};border:${border};
+                     padding:6px 12px;border-radius:20px;font-size:13px;margin:3px;
+                     font-weight:600;letter-spacing:.2px;">
+              ${isPinned ? "📌 " : ""}${c}
+            </span>`;
+          }).join("");
+
+          srows += `<tr>
+            <td style="white-space:nowrap;padding:12px 18px">
+              <span style="background:${col};color:#fff;padding:5px 12px;border-radius:8px;
+                           font-weight:700;font-size:13px;box-shadow:0 2px 6px ${col}50">${date}</span>
+            </td>
+            <td class="drop-zone" data-date="${date}" style="padding:10px 18px;line-height:2">${pills}</td>
+            <td style="font-weight:700;color:${isDark?"#f8fafc":col};font-size:16px;padding:12px 18px">${courses.length}</td>
+          </tr>`;
+
+          csvData += `${date},"${courses.join(" | ")}",${courses.length}\n`;
+          i++;
+        }
+
+        document.getElementById("scheduleTbody").innerHTML = srows;
+        initSortable();
+      }
+
+      // ─── Drag & Drop ──────────────────────────────────────────────────────────
+      function initSortable() {
+        // Destroy previous instances to avoid double-firing
+        sortableInstances.forEach(s => s.destroy());
+        sortableInstances = [];
+
+        document.querySelectorAll(".drop-zone").forEach(zone => {
+          const inst = new Sortable(zone, {
+            group: "schedule",
+            animation: 160,
+            ghostClass: "sortable-ghost",
+            chosenClass: "sortable-chosen",
+            onEnd(evt) {
+              const course     = evt.item.dataset.course;
+              const fromDate   = evt.item.dataset.fromDate;
+              const targetDate = evt.to.dataset.date;
+              if (!course || !fromDate || !targetDate || fromDate === targetDate) return;
+              applyMove(course, fromDate, targetDate);
+            }
+          });
+          sortableInstances.push(inst);
+        });
+      }
+
+      // ─── Conflict Modal Logic ─────────────────────────────────────────────
+      let _modalResolve = null;
+
+      function openConflictModal(course, targetDate, conflicts) {
+        document.getElementById("modalTitle").textContent = `Conflict: Moving "${course}" to ${targetDate}`;
+        document.getElementById("modalSubtitle").textContent = `This will cause ${conflicts.length} student(s) to have 2 exams on the same day.`;
+        document.getElementById("modalCount").textContent = `${conflicts.length} affected student(s)`;
+
+        const list = document.getElementById("modalStudentList");
+        list.innerHTML = conflicts.map(c => `
+          <div class="conflict-student-row">
+            <div class="avatar">${c.student.trim()[0] || "?"}</div>
+            <div class="info">
+              <div class="s-name">${c.student}</div>
+              <div class="s-clash">⚠️ Already has: ${c.clash.join(", ")}</div>
+            </div>
+          </div>`).join("");
+
+        document.getElementById("conflictModal").classList.add("open");
+
+        return new Promise(resolve => { _modalResolve = resolve; });
+      }
+
+      function closeConflictModal(proceed) {
+        document.getElementById("conflictModal").classList.remove("open");
+        if (_modalResolve) { _modalResolve(proceed); _modalResolve = null; }
+      }
+
+      function applyMove(course, fromDate, targetDate) {
+        const students = res.students || {};
+        const studentsAvailable = Object.keys(students).length > 0;
+        const conflicts = [];
+
+        if (studentsAvailable) {
+          for (const [student, stCourses] of Object.entries(students)) {
+            const arr = Array.isArray(stCourses) ? stCourses : Array.from(stCourses);
+            if (arr.includes(course)) {
+              const clash = (res.dated_slots[targetDate] || []).filter(c => arr.includes(c));
+              if (clash.length) conflicts.push({ student, clash });
+            }
+          }
+        } else {
+          console.warn("[Schedule] res.students empty — regenerate for conflict detection.");
+          showToast("⚠️ Regenerate schedule for conflict checking.", "error");
+        }
+
+        const commitMove = () => {
+          res.dated_slots[fromDate] = (res.dated_slots[fromDate] || []).filter(c => c !== course);
+          if (!res.dated_slots[targetDate]) res.dated_slots[targetDate] = [];
+          res.dated_slots[targetDate].push(course);
+          renderTableAndLegend();
+          renderCharts();
+        };
+
+        if (conflicts.length) {
+          openConflictModal(course, targetDate, conflicts).then(proceed => {
+            if (!proceed) { renderTableAndLegend(); return; }
+            commitMove();
+            showToast(`⚠️ Moved — ${conflicts.length} student conflict(s) on ${targetDate}.`, "error");
+          });
+        } else {
+          commitMove();
+          if (studentsAvailable) showToast(`✅ "${course}" moved to ${targetDate} — no conflicts.`, "success");
+        }
+      }
+
+      // ─── Toast Helper ─────────────────────────────────────────────────────────
+      function showToast(msg, type = "success") {
+        const el = document.createElement("div");
+        el.className = `toast toast-${type}`;
+        el.innerHTML = `<span class="toast-icon">${type === "error" ? "⚠️" : "✅"}</span><span>${msg}</span>`;
+        document.body.appendChild(el);
+        setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .4s"; }, 4200);
+        setTimeout(() => el.remove(), 4700);
+      }
+
+      // ─── CSV Export ───────────────────────────────────────────────────────────
+      function dlCSV() {
+        const b = new Blob(["\uFEFF" + csvData], { type: "text/csv;charset=utf-8;" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(b);
+        a.download = `Exam_Schedule_${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+      }
+
+      // ─── PDF Print (browser-native, supports Arabic) ──────────────────────────
+      function dlPDF() {
+        const st = res.stats;
+        const dateStr = new Date().toLocaleDateString("en-GB", { day:"2-digit", month:"long", year:"numeric" });
+        let rows = "";
+        let i = 0;
+        for (const [date, courses] of Object.entries(res.dated_slots)) {
+          const bg = PALETTE[i % PALETTE.length];
+          const bg10 = bg + "18";
+          rows += `<tr style="background:${i%2===0?"#fff":"#f8fafc"}"><td style="background:${bg10};font-weight:700;color:${bg};border-radius:6px;padding:8px 12px;white-space:nowrap">${date}</td><td style="padding:8px 12px;color:#1e293b;font-size:13px;line-height:1.8">${courses.join(" &nbsp;·&nbsp; ")}</td><td style="padding:8px 12px;font-weight:700;color:${bg};text-align:center">${courses.length}</td></tr>`;
+          i++;
+        }
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Exam Schedule</title>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Outfit,sans-serif;padding:0}
+        .hdr{background:linear-gradient(135deg,#4f46e5,#8b5cf6);color:#fff;padding:24px 32px;text-align:center}
+        .hdr h1{font-size:22px;margin-bottom:6px}.hdr p{font-size:12px;opacity:.85}
+        .pills{display:flex;justify-content:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+        .pill{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600}
+        table{width:100%;border-collapse:collapse;margin:0}th{background:#4f46e5;color:#fff;padding:10px 12px;text-align:left;font-size:13px}
+        td{border-bottom:1px solid #e2e8f0;vertical-align:middle}
+        @media print{@page{margin:15mm}}</style></head><body>
+        <div class="hdr"><h1>🎓 University Exam Schedule</h1><p>Generated: ${dateStr} | Smart Scheduling System</p>
+        <div class="pills"><span class="pill">📚 ${st.courses} Courses</span><span class="pill">👥 ${st.students} Students</span><span class="pill">📅 ${st.exam_days} Exam Days</span></div></div>
+        <table><thead><tr><th style="width:110px">Date</th><th>Courses Scheduled</th><th style="width:40px">#</th></tr></thead><tbody>${rows}</tbody></table>
+        </body></html>`;
+        const w = window.open("", "_blank");
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        setTimeout(() => { w.print(); }, 800);
+      }
+
+      // ─── Student PDF Print ────────────────────────────────────────────────────
+      function printStudentPDF() {
+        if (!selectedStudent) return;
+        const courses = (res.students || {})[selectedStudent] || [];
+        const dateStr = new Date().toLocaleDateString("en-GB", { day:"2-digit", month:"long", year:"numeric" });
+        let rows = "";
+        let i = 0;
+        for (const [date, dayCourses] of Object.entries(res.dated_slots)) {
+          const myExams = dayCourses.filter(c => courses.includes(c));
+          if (!myExams.length) { i++; continue; }
+          const bg = PALETTE[i % PALETTE.length];
+          rows += `<tr><td style="padding:8px 12px;font-weight:700;color:${bg};white-space:nowrap">${date}</td><td style="padding:8px 12px;color:#1e293b">${myExams.join(" · ")}</td></tr>`;
+          i++;
+        }
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${selectedStudent}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Outfit,sans-serif}
+        .hdr{background:linear-gradient(135deg,#4f46e5,#8b5cf6);color:#fff;padding:24px 32px;text-align:center}
+        .hdr h1{font-size:20px;margin-bottom:4px}.hdr p{font-size:12px;opacity:.85}
+        table{width:100%;border-collapse:collapse;margin-top:0}th{background:#4f46e5;color:#fff;padding:10px 12px;text-align:left;font-size:13px}
+        td{border-bottom:1px solid #e2e8f0;vertical-align:middle}
+        tr:nth-child(even){background:#f8fafc}@media print{@page{margin:15mm}}</style></head><body>
+        <div class="hdr"><h1>📋 Personal Exam Schedule</h1><p>${selectedStudent} &nbsp;|&nbsp; ${courses.length} Courses &nbsp;|&nbsp; ${dateStr}</p></div>
+        <table><thead><tr><th style="width:120px">Date</th><th>Exam</th></tr></thead><tbody>${rows}</tbody></table>
+        </body></html>`;
+        const w = window.open("", "_blank");
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        setTimeout(() => { w.print(); }, 800);
+      }
+
+      // Sync graph node colors with table
+      res.graph.nodes.forEach((node) => {
+        if (courseColors[node.id]) {
+          node.color = courseColors[node.id];
+        }
+      });
+
+      // Draw Graph (vis.js)
+      const vn = new vis.DataSet(res.graph.nodes);
+      const ve = new vis.DataSet(res.graph.edges);
+      new vis.Network(
+        document.getElementById("net"),
+        { nodes: vn, edges: ve },
+        {
+          physics: {
+            enabled: true,
+            solver: "forceAtlas2Based",
+            forceAtlas2Based: {
+              gravitationalConstant: -60,
+              centralGravity: 0.01,
+              springLength: 130,
+              springConstant: 0.05,
+              damping: 0.45,
+            },
+            stabilization: { iterations: 150 },
+          },
+          interaction: { dragNodes: true, hover: true, tooltipDelay: 80 },
+          edges: {
+            smooth: { type: "continuous" },
+            scaling: { min: 0.5, max: 5 },
+            color: {
+              inherit: false,
+              color: "rgba(148,163,184,0.3)",
+              highlight: "#6366f1",
+            },
+            width: 1.2,
+            selectionWidth: 2.5,
+          },
+          nodes: {
+            shape: "box",
+            font: {
+              size: 13,
+              face: "Outfit,sans-serif",
+              color: "#fff",
+              bold: true,
+            },
+            shadow: {
+              enabled: true,
+              size: 8,
+              x: 0,
+              y: 4,
+              color: "rgba(0,0,0,.15)",
+            },
+            borderWidth: 0,
+            borderRadius: 8,
+          },
+          layout: { randomSeed: 42 },
+        },
+      );
+
+      // Holidays List
+      let hlHtml = "";
+      res.official_holidays.forEach((h) => {
+        hlHtml += `<li style="padding:12px 10px; border-bottom:1px solid var(--border-color); display:flex; align-items:center;"><span style="background:rgba(14,165,233,0.1); color:#0ea5e9; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; margin-right:12px;">Official</span> <span style="font-weight:600; color:var(--text-main);">${h.date}</span> <span style="color:var(--text-muted);margin-left:10px;">${h.name}</span></li>`;
+      });
+      res.university_holidays.forEach((h) => {
+        hlHtml += `<li style="padding:12px 10px; border-bottom:1px solid var(--border-color); display:flex; align-items:center;"><span style="background:rgba(236,72,153,0.1); color:#ec4899; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; margin-right:12px;">Custom</span> <span style="font-weight:600; color:var(--text-main);">${h}</span></li>`;
+      });
+      if (hlHtml === "")
+        hlHtml =
+          "<li style='text-align:center; color:var(--text-muted); padding: 20px;'>No holidays in this period.</li>";
+      document.getElementById("holidaysList").innerHTML = hlHtml;
+
+      // Charts Setup
+      function renderCharts() {
+        const isDark =
+          document.documentElement.getAttribute("data-theme") === "dark";
+        const paperBg = isDark ? "#1e293b" : "#ffffff";
+        const plotBg = isDark ? "#0f172a" : "#f8fafc";
+        const textColor = isDark ? "#f8fafc" : "#1e293b";
+        const gridColor = isDark ? "#334155" : "#e2e8f0";
+
+        const cfg = { responsive: true, displayModeBar: false };
+        const an = res.analytics;
+
+        function bar_h(x, y, colors, title, xlabel) {
+          return [
+            [
+              {
+                type: "bar",
+                orientation: "h",
+                x: x,
+                y: y,
+                marker: { color: colors, opacity: 0.95, line: { width: 0 } },
+                hovertemplate:
+                  "<b>%{y}</b><br>" + xlabel + ": %{x}<extra></extra>",
+              },
+            ],
+            {
+              height: 330,
+              margin: { l: 210, r: 20, t: 40, b: 40 },
+              paper_bgcolor: paperBg,
+              plot_bgcolor: plotBg,
+              font: { family: "Outfit,sans-serif", color: textColor, size: 12 },
+              xaxis: { gridcolor: gridColor, title: xlabel },
+              yaxis: { autorange: "reversed" },
+              title: {
+                text: title,
+                font: {
+                  size: 16,
+                  color: textColor,
+                  family: "Outfit,sans-serif",
+                  weight: "bold",
+                },
+              },
+            },
+          ];
+        }
+
+        function lollipop(x, y, title, xlabel, ylabel) {
+          return [
+            [
+              {
+                type: "scatter",
+                mode: "lines",
+                x: x,
+                y: y,
+                line: { color: "rgba(148,163,184,0.3)", width: 1.5 },
+                hoverinfo: "none",
+              },
+              {
+                type: "scatter",
+                mode: "markers",
+                x: x,
+                y: y,
+                marker: {
+                  size: 14,
+                  color: y,
+                  colorscale: "Viridis",
+                  line: { color: "#fff", width: 2 },
+                  showscale: false,
+                },
+                text: y.map((v) => v + " Students"),
+                hovertemplate: "<b>%{x}</b><br>%{text}<extra></extra>",
+              },
+            ],
+            {
+              height: 330,
+              margin: { l: 55, r: 20, t: 50, b: 80 },
+              paper_bgcolor: paperBg,
+              plot_bgcolor: plotBg,
+              font: { family: "Outfit,sans-serif", color: textColor, size: 12 },
+              xaxis: {
+                gridcolor: gridColor,
+                title: xlabel,
+                tickangle: -35,
+                showgrid: false,
+              },
+              yaxis: { gridcolor: gridColor, title: ylabel, zeroline: false },
+              showlegend: false,
+              title: {
+                text: title,
+                font: {
+                  size: 16,
+                  color: textColor,
+                  family: "Outfit,sans-serif",
+                  weight: "bold",
+                },
+              },
+            },
+          ];
+        }
+
+        function bar_v(x, y, colors, title, xlabel, ylabel) {
+          return [
+            [
+              {
+                type: "bar",
+                x: x,
+                y: y,
+                marker: { color: colors, opacity: 0.95, line: { width: 0 } },
+                hovertemplate:
+                  "<b>%{x}</b><br>" + ylabel + ": %{y}<extra></extra>",
+              },
+            ],
+            {
+              height: 290,
+              margin: { l: 55, r: 20, t: 40, b: 80 },
+              paper_bgcolor: paperBg,
+              plot_bgcolor: plotBg,
+              font: { family: "Outfit,sans-serif", color: textColor, size: 12 },
+              xaxis: { gridcolor: gridColor, title: xlabel, tickangle: -35 },
+              yaxis: { gridcolor: gridColor, title: ylabel },
+              title: {
+                text: title,
+                font: {
+                  size: 16,
+                  color: textColor,
+                  family: "Outfit,sans-serif",
+                  weight: "bold",
+                },
+              },
+            },
+          ];
+        }
+
+        function donut(labels, values, colors, title) {
+          return [
+            [
+              {
+                type: "pie",
+                labels: labels,
+                values: values,
+                hole: 0.5,
+                marker: { colors: colors },
+                textinfo: "label+percent",
+                hoverinfo: "label+value",
+                textposition: "inside",
+              },
+            ],
+            {
+              height: 330,
+              margin: { l: 20, r: 20, t: 40, b: 20 },
+              paper_bgcolor: paperBg,
+              plot_bgcolor: plotBg,
+              font: { family: "Outfit,sans-serif", color: textColor, size: 12 },
+              showlegend: true,
+              legend: { orientation: "h", y: -0.1 },
+              title: {
+                text: title,
+                font: {
+                  size: 16,
+                  color: textColor,
+                  family: "Outfit,sans-serif",
+                  weight: "bold",
+                },
+              },
+            },
+          ];
+        }
+
+        let dt = an.deg_list;
+        let [ch1d, ch1l] = bar_h(
+          dt.map((x) => x[1]),
+          dt.map((x) => x[0]),
+          dt.map((_, idx) => PALETTE[idx % PALETTE.length]),
+          "Top Conflicted Courses",
+          "Conflict edges",
+        );
+        Plotly.react("ch1", ch1d, ch1l, cfg);
+
+        let et = an.edge_data;
+        let [ch2d, ch2l] = bar_h(
+          et.map((x) => x[2]),
+          et.map((x) => `${x[0].substring(0, 15)} ↔ ${x[1].substring(0, 15)}`),
+          et.map((_, idx) => PALETTE[idx % PALETTE.length]),
+          "Heaviest Conflict Pairs",
+          "Shared students",
+        );
+        Plotly.react("ch2", ch2d, ch2l, cfg);
+
+        let sl = an.slot_load;
+        let slDates = Object.keys(sl);
+        let [ch3d, ch3l] = bar_v(
+          slDates,
+          slDates.map((d) => sl[d]),
+          slDates.map((_, idx) => PALETTE[idx % PALETTE.length]),
+          "Courses per Exam Day",
+          "Exam Day",
+          "# Courses",
+        );
+        Plotly.react("ch3", ch3d, ch3l, cfg);
+
+        // Calculate Student Workload Distribution (Count how many students take X courses)
+        let workloadCounts = {};
+        if (an.heavy_stud) {
+            an.heavy_stud.forEach(x => {
+                let c = x[1];
+                let label = c + (c === 1 ? " Course" : " Courses");
+                workloadCounts[label] = (workloadCounts[label] || 0) + 1;
+            });
+        }
+        
+        let wlLabels = Object.keys(workloadCounts);
+        let wlValues = Object.values(workloadCounts);
+
+        if (wlLabels.length > 0) {
+          let [ch5d, ch5l] = donut(
+            wlLabels,
+            wlValues,
+            PALETTE,
+            "Student Workload Distribution"
+          );
+          Plotly.react("ch5", ch5d, ch5l, cfg);
+        } else {
+          document.getElementById("ch5").innerHTML = "<div style='height:330px; display:flex; align-items:center; justify-content:center; flex-direction:column; color:var(--text-muted);'><span style='font-size:24px; margin-bottom:10px;'>⚠️</span><p>No student data found.<br>Please go back and generate a new schedule.</p></div>";
+        }
+
+        // --- NEW CHARTS ---
+
+        // ch6: Largest Courses by Enrollment
+        let te = an.top_enrollment ? an.top_enrollment : [];
+        if (te.length > 0) {
+          let [ch6d, ch6l] = bar_h(
+            te.map((x) => x[1]),
+            te.map((x) => x[0]),
+            te.map((_, idx) => PALETTE[idx % PALETTE.length]),
+            "Largest Courses (By Student Enrollment)",
+            "Total Enrolled Students"
+          );
+          Plotly.react("ch6", ch6d, ch6l, cfg);
+        } else {
+          document.getElementById("ch6").innerHTML = "<div style='height:330px; display:flex; align-items:center; justify-content:center; color:var(--text-muted);'>No enrollment data</div>";
+        }
+
+        // ch7: Campus Footprint (Students per Exam Day)
+        let ss = an.slot_students;
+        if (ss && Object.keys(ss).length > 0) {
+          let ssDates = Object.keys(ss);
+          let ssVals = ssDates.map((d) => ss[d]);
+          let [ch7d, ch7l] = lollipop(
+            ssDates,
+            ssVals,
+            "Campus Footprint (Daily Attendance Trend)",
+            "Exam Day",
+            "Total Students"
+          );
+          Plotly.react("ch7", ch7d, ch7l, cfg);
+        } else {
+          document.getElementById("ch7").innerHTML = "<div style='height:330px; display:flex; align-items:center; justify-content:center; color:var(--text-muted);'>No student distribution data</div>";
+        }
+      }
+
+      initOptions();
+      renderTableAndLegend();
+      renderCharts();
+
+    </script>
+  </body>
+</html>
